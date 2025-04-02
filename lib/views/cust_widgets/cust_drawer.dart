@@ -2,6 +2,9 @@ import 'package:all_in_one/ihelper/shared_variables.dart';
 import 'package:all_in_one/views/frm_metal_archive.dart';
 import 'package:all_in_one/views/frm_metal_rate.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../controllers/cubit/archive_cubit.dart';
 
 class CustomDrawer extends StatelessWidget {
   const CustomDrawer({super.key});
@@ -40,19 +43,53 @@ backgroundColor: Colors.black54,
 
           item('Home', Icons.home, () {
             Navigator.pop(context);
-            Navigator.push(
+            Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(builder: (context) => FrmMetalRate()),
+              (route) => true,
             );
           }),
 
-          item('Archive', Icons.history, () {
+          item('Archive', Icons.history, ()
+          {
             Navigator.pop(context);
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => FrmMetalArchive()),
-            );
+              MaterialPageRoute(builder: (context) => FrmMetalArchive()),);
           }),
+
+          item('Gold\'s price archive', Icons.shopping_basket_outlined, ()
+          {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => FrmMetalArchive(metalCatShortcut: 'XAU',)),);
+          }),
+
+          item('Silver\'s price archive', Icons.shopping_basket_outlined, ()
+          {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => FrmMetalArchive(metalCatShortcut: 'XAG',)),);
+          }),
+
+          item('Platinum\'s price archive', Icons.shopping_basket_outlined, ()
+          {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => FrmMetalArchive(metalCatShortcut: 'XPT',)),);
+          }),
+
+          item('Palladium\'s price archive', Icons.shopping_basket_outlined, ()
+          {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => FrmMetalArchive(metalCatShortcut: 'XPD',)),);
+          }),
+
         ],
       ),
     );

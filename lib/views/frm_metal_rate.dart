@@ -1,5 +1,5 @@
-import 'dart:developer';
-
+import 'package:all_in_one/models/metal_shared_methods.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../ihelper/dio_helper.dart';
 import '../ihelper/hive_helper.dart';
 import '../ihelper/shared_methods.dart';
@@ -7,7 +7,6 @@ import '../models/metal_rate_model.dart';
 import '../views/cust_widgets/cust_drawer.dart';
 import 'package:flutter/material.dart';
 
-import '../ihelper/api_endpoints.dart';
 import '../ihelper/shared_variables.dart';
 import 'cust_widgets/cust_appbar.dart';
 import 'cust_widgets/cust_general_reponse.dart';
@@ -23,37 +22,14 @@ class FrmMetalRate extends StatefulWidget {
 
 class _FrmMetalRateState extends State<FrmMetalRate> {
 
-  DioHelper _dioHelper = DioHelper();
+  final DioHelper _dioHelper = DioHelper();
 
-  String selectedCategory = '';
-  String selectedCategoryImage = 'assets/images/gold.gif';
-
+  String selectedMetalShortcut = '';
+  String selectedCategoryImage = 'assets/images/Thinking.gif';
   late MetalRateModel metalRateModel;
-  final List<Map<String, String>> listOfMetals = [
-    {
-      'category': 'Gold XAU',
-      'image': 'assets/images/Category_Gold.jpg',
-      'shortCut': 'XAU',
-    },
-    {
-      'category': 'Silver XAG',
-      'image': 'assets/images/Category_Silver.jpg',
-      'shortCut': 'XAG',
-    },
-    {
-      'category': 'Platinum XPT',
-      'image': 'assets/images/Category_Platinum.jpg',
-      'shortCut': 'XPT',
-    },
-    {
-      'category': 'Palladium XPD',
-      'image': 'assets/images/Category_Palladium.jpg',
-      'shortCut': 'XPD',
-    },
-  ];
 
   Future<void> selectMetalCategoryWithLastRecord() async {
-    switch (selectedCategory) {
+    switch (selectedMetalShortcut) {
       case 'XAU':
         selectedCategoryImage = 'assets/images/gold.gif';
         break;
@@ -68,11 +44,7 @@ class _FrmMetalRateState extends State<FrmMetalRate> {
         break;
     }
 
-    metalRateModel = await HiveHelper.selectOne(selectedCategory);
-
-    log(
-      'Selected last record in category ${metalRateModel.metal} -- ${metalRateModel.recordID.toString()}',
-    );
+    metalRateModel = await HiveHelper.selectOne(selectedMetalShortcut);
 
     if (metalRateModel.recordID == 0) {
       SharedMethods.msgOperationResult(
@@ -83,8 +55,31 @@ class _FrmMetalRateState extends State<FrmMetalRate> {
     }
   }
 
-  Future<void> fetchData() async {
-    log('${apiEndPointMetal}XAU/EGP');
+  // For testing
+  int timestamp =1743423942 ,openTime = 1743379200;
+  double price = 1000,ch = 0,ask = 0,bid = 0,priceGram24K = 24,priceGram22K = 22,priceGram21K = 21,priceGram20K = 20,priceGram18K = 18,priceGram16K = 16,priceGram14K = 14,priceGram10K =10;
+  void testing()
+  {
+    timestamp += 10000;
+    openTime + 10000;
+
+    price = 500;
+    ch += 10;
+    ask += 15;
+    bid += 20;
+    priceGram24K += 1000;
+    priceGram22K += 1000;
+    priceGram21K += 1000;
+    priceGram20K += 1000;
+    priceGram18K += 1000;
+    priceGram16K += 1000;
+    priceGram14K += 1000;
+    priceGram10K += 1000;
+
+    MetalRateModel newData = MetalRateModel(timestamp: timestamp, metal: selectedMetalShortcut, openTime: openTime, price: price, ch: ch, ask: ask, bid: bid, priceGram24K: priceGram24K, priceGram22K: priceGram22K, priceGram21K: priceGram21K, priceGram20K: priceGram20K, priceGram18K: priceGram18K, priceGram16K: priceGram16K, priceGram14K: priceGram14K, priceGram10K: priceGram10K);
+    setState(() {
+      metalRateModel = newData;
+    });
   }
 
   @override
@@ -95,7 +90,7 @@ class _FrmMetalRateState extends State<FrmMetalRate> {
     metalRateModel = MetalRateModel(
       recordID: 0,
       timestamp: 0,
-      metal: selectedCategory,
+      metal: selectedMetalShortcut,
       currency: 'EGP',
       openTime: 0,
       price: 0,
@@ -114,30 +109,47 @@ class _FrmMetalRateState extends State<FrmMetalRate> {
   }
 
   @override
-  void dispose() {
-    // TODO: implement dispose
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: CustomAppBar(
         title: 'Gold Swing',
         onTapSync: () async {
-          if (selectedCategory == '') {
+
+          try
+          {
+            // Check connectivity
+            var internetStatus = await Connectivity().checkConnectivity();
+            if(internetStatus.contains(ConnectivityResult.wifi) || internetStatus.contains(ConnectivityResult.mobile))
+            {
+              if (selectedMetalShortcut == '') {
+                SharedMethods.msgOperationResult(
+                  context,
+                  'You have to select a category first.',
+                  Colors.orangeAccent,
+                );
+              } else {
+                // Get current metal rate
+                MetalRateModel newData =  await _dioHelper.selectRecord(selectedMetalShortcut);
+
+                setState(() {
+                  metalRateModel = newData;
+                });
+              }
+            }
+            else{
+              SharedMethods.msgOperationResult(
+                context,
+                'There is no internet available now.',
+                Colors.black26,
+              );
+            }
+          }catch(ex)
+          {
             SharedMethods.msgOperationResult(
               context,
-              'You have to select a category first.',
-              Colors.orangeAccent,
+              'Error while getting data \n ${metalRateModel.statusMsg} \n ${ex.toString()}',
+              Colors.black26,
             );
-          } else {
-
-            MetalRateModel newData =  await _dioHelper.selectRecord(selectedCategory);
-
-            setState(() {
-              metalRateModel = newData;
-            });
           }
         },
       ),
@@ -152,19 +164,19 @@ class _FrmMetalRateState extends State<FrmMetalRate> {
             height: 100,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              itemCount: listOfMetals.length,
+              itemCount: MetalSharedMethods.listOfMetals.length,
               itemBuilder: (context, index) {
                 return CustomMetalCategory(
                   // Get metal category name & shortcut & category image
-                  category: listOfMetals[index]['category'].toString(),
-                  image: listOfMetals[index]['image'].toString(),
-                  shortCut: listOfMetals[index]['shortCut'].toString(),
-                  selectedCategory: selectedCategory,
+                  category: MetalSharedMethods.listOfMetals[index]['category'].toString(),
+                  image: MetalSharedMethods.listOfMetals[index]['image'].toString(),
+                  shortCut: MetalSharedMethods.listOfMetals[index]['shortCut'].toString(),
+                  selectedCategory: selectedMetalShortcut,
 
                   onTap: () {
                     setState(() {
-                      selectedCategory =
-                          listOfMetals[index]['shortCut'].toString();
+                      selectedMetalShortcut =
+                          MetalSharedMethods.listOfMetals[index]['shortCut'].toString();
                       selectMetalCategoryWithLastRecord();
                     });
                   },
@@ -194,15 +206,25 @@ class _FrmMetalRateState extends State<FrmMetalRate> {
             ),
             child: Column(
               children: [
+                // Gif image
                 Image.asset(selectedCategoryImage, height: 175, width: 175),
 
+                // Open date
+                Center(
+                    child: Text(SharedMethods.convertTimesTampToDateTime(metalRateModel.openTime),style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: myGoldenColor
+                    ),),
+                ),
+
                 Container(
-                  margin: EdgeInsets.only(left: 26, right: 26, bottom: 16),
+                  margin: EdgeInsets.only(left: 26, right: 26, bottom: 16,top: 16),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       CustomGeneralResponse(
-                        title: 'Last Price: ',
+                        title: 'Ounce Price: ',
                         value: metalRateModel.price,
                       ),
 
@@ -244,39 +266,39 @@ class _FrmMetalRateState extends State<FrmMetalRate> {
               color: Colors.white,
               child: ListView(
                 physics:
-                    const BouncingScrollPhysics(), // Smooth scrolling effect
+                const BouncingScrollPhysics(), // Smooth scrolling effect
                 children: [
                   CustomPriceShape(
                     weight: 'Gram 10K',
-                    price: metalRateModel.priceGram10K.toString(),
+                    price: metalRateModel.priceGram10K.toStringAsFixed(2),
                   ),
                   CustomPriceShape(
                     weight: 'Gram 14K',
-                    price: metalRateModel.priceGram14K.toString(),
+                    price: metalRateModel.priceGram14K.toStringAsFixed(2),
                   ),
                   CustomPriceShape(
                     weight: 'Gram 16K',
-                    price: metalRateModel.priceGram16K.toString(),
+                    price: metalRateModel.priceGram16K.toStringAsFixed(2),
                   ),
                   CustomPriceShape(
                     weight: 'Gram 18K',
-                    price: metalRateModel.priceGram18K.toString(),
+                    price: metalRateModel.priceGram18K.toStringAsFixed(2),
                   ),
                   CustomPriceShape(
                     weight: 'Gram 20K',
-                    price: metalRateModel.priceGram20K.toString(),
+                    price: metalRateModel.priceGram20K.toStringAsFixed(2),
                   ),
                   CustomPriceShape(
                     weight: 'Gram 21K',
-                    price: metalRateModel.priceGram21K.toString(),
+                    price: metalRateModel.priceGram21K.toStringAsFixed(2),
                   ),
                   CustomPriceShape(
                     weight: 'Gram 22K',
-                    price: metalRateModel.priceGram22K.toString(),
+                    price: metalRateModel.priceGram22K.toStringAsFixed(2),
                   ),
                   CustomPriceShape(
                     weight: 'Gram 24K',
-                    price: metalRateModel.priceGram24K.toString(),
+                    price: metalRateModel.priceGram24K.toStringAsFixed(2),
                   ),
                 ],
               ),
@@ -289,71 +311,36 @@ class _FrmMetalRateState extends State<FrmMetalRate> {
       drawer: CustomDrawer(),
 
       // Save to hive db
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          metalRateModel.price += 1000;
-          if (!(metalRateModel.price > 0)) {
-            SharedMethods.msgOperationResult(
-              context,
-              'The last price is not > 0',
-              Colors.red,
-            );
-          } else {
-            /*
-              metalRateModel = MetalRateModel(
-                  timestamp: 0,
-                  metal: selectedCategory,
-                  currency: 'EGP',
-                  openTime: 0,
-                  price: 0,
-                  ch: 0,
-                  ask: 0,
-                  bid: 0,
-                  priceGram24K: 0,
-                  priceGram22K: 0,
-                  priceGram21K: 0,
-                  priceGram20K: 0,
-                  priceGram18K: 0,
-                  priceGram16K: 0,
-                  priceGram14K: 0,
-                  priceGram10K: 0);
-              metalRateModel.timestamp += 1000;
-              metalRateModel.openTime += 1000;
-              metalRateModel.price += 1000;
-*/
-            log('Metal ${metalRateModel.metal.toString()}');
-            log('Price10 ${metalRateModel.priceGram10K.toString()}');
-            log('TimesTamp ${metalRateModel.timestamp.toString()}');
-            log('statusMsg ${metalRateModel.statusMsg.toString()}');
-
-            HiveHelper.addRecord(metalRateModel);
-
-            SharedMethods.msgOperationResult(
-              context,
-              'Record saved successfully.',
-              Colors.green,
-            );
-
-            log(metalRateModel.toString());
-          }
-        },
+      floatingActionButton:
+      FloatingActionButton(
         tooltip: 'Save to archive',
         backgroundColor: myGoldenColor,
         child: const Icon(Icons.save_alt_sharp, color: myMainColor),
-      ),
+        onPressed: () {
+          //testing();
+          if (!(metalRateModel.price > 0)) {
+            SharedMethods.msgOperationResult(
+              context,
+              'You have to get the ounce price first, it\'s now not > 0',
+              Colors.red,
+            );
+          }else if(selectedMetalShortcut == ''){
+            SharedMethods.msgOperationResult(
+              context,
+              'Please select metal Category first.',
+              myGoldenColor,
+            );
+          } else {
+            HiveHelper.addRecord(metalRateModel);
+            String counter = HiveHelper.selectCount();
+
+            SharedMethods.msgOperationResult(
+              context,
+              'Record saved successfully, you\'r archive has $counter records.',
+              Colors.green,
+            );
+          }
+        },),
     );
   }
 }
-
-/*
-ListView.builder(
-                physics: const BouncingScrollPhysics(), // Smooth scrolling effect
-                itemCount: metalRates.length,
-                itemBuilder: (context, index) {
-                  return CustomPriceShape(
-                    weight: metalRates[index]['weight']!,
-                    price: metalRates[index]['price']!,
-                  );
-                },
-              )
-* */

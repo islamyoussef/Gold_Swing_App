@@ -22,7 +22,7 @@ class CustomGeneralResponse extends StatelessWidget {
                 style: customTitleStyle(),
                 children: [
                   TextSpan(
-                  text: value.toString(),
+                  text: value.toStringAsFixed(2),
                   style: customValueStyle()
                 )]
             ),

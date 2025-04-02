@@ -1,15 +1,18 @@
-import 'dart:developer';
-
-import 'package:all_in_one/ihelper/hive_helper.dart';
+import 'package:all_in_one/controllers/cubit/archive_cubit.dart';
 import 'package:all_in_one/ihelper/shared_methods.dart';
 import 'package:all_in_one/models/metal_rate_model.dart';
+import 'package:all_in_one/models/metal_shared_methods.dart';
 import 'package:all_in_one/views/cust_widgets/cust_drawer.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../ihelper/shared_variables.dart';
 import 'cust_widgets/cust_appbar.dart';
 import 'cust_widgets/cust_price_shape_archive.dart';
+
 class FrmMetalArchive extends StatefulWidget {
-  const FrmMetalArchive({super.key});
+  const FrmMetalArchive({super.key, this.metalCatShortcut = ''});
+
+  final String metalCatShortcut;
 
   @override
   State<FrmMetalArchive> createState() => _FrmMetalRateState();
@@ -17,86 +20,85 @@ class FrmMetalArchive extends StatefulWidget {
 
 class _FrmMetalRateState extends State<FrmMetalArchive> {
 
-  List<MetalRateModel> archiveList = [];
-
-  Future<List<MetalRateModel>> selectAll() async{
-    archiveList.clear();
-    archiveList = HiveHelper.selectAllRecords();
-
-    return archiveList;
-  }
-
-  void resetCurrentValues(){
-    // switch (selectedCategory){
-    //   case 'XAG':
-    //     selectedCategoryImage = 'assets/images/silver.gif';
-    //     break;
-    //   case 'XPT':
-    //     selectedCategoryImage = 'assets/images/platinum.gif';
-    //     break;
-    //   case 'XPD':
-    //     selectedCategoryImage = 'assets/images/palladium.gif';
-    //     break;
-    //   default:
-    //     selectedCategoryImage = 'assets/images/gold.gif';
-    // }
-    //
-    // setState(() {
-    //   price = 0.0;
-    //   change = 0.0;
-    //   askPrice = 0.0;
-    //   bidPrice = 0.0;
-    // });
+  void refreshList(){
+    context.read<ArchiveCubit>().getRecords(metalCategoryShortcut: widget.metalCatShortcut);
   }
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    selectAll();
-  }
-
-  @override
-  void dispose() {
-    // TODO: implement dispose
-    super.dispose();
+    refreshList();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CustomAppBar(title: 'Gold Swing Archive', viewActionButton: false,),
-
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-
-          // ListView
-          Expanded(
-            child: ListView.builder(
-              itemCount: archiveList.length,
-                itemBuilder: (context, index) {
-                  return CustomPriceShapeArchive(metalRateModel: archiveList[index], onTap: (){
-
-                    openModalBottomSheet(archiveList[index]);
-
-                  },);
-                },
-            ),
-          ),
-        ],
+      appBar: CustomAppBar(
+        title: 'Gold Swing Archive',
+        viewActionButton:false,
       ),
+
+      body:
+        BlocBuilder<ArchiveCubit, ArchiveState>(
+          builder: (context, state) {
+            if (state is ArchiveLoadingState) {
+              return Center(child: CircularProgressIndicator(color: myGoldenColor,));
+            }
+            else if (state is ArchiveFailureState) {
+              return Center(child: Text(state.errorMsg, style: kTextStyle(Colors.redAccent),));
+            } else if (state is ArchiveSuccessState) {
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  // ListView
+                  Expanded(
+                    child: ListView.builder(
+                      //itemCount: archiveList.length,
+                      itemCount: state.listOfData.length,
+                      itemBuilder: (context, index) {
+                        return CustomPriceShapeArchive(
+                          metalRateModel: state.listOfData[index],
+                          onTap: () {
+                            openModalBottomSheet(state.listOfData[index],(){
+                              // Delete current record
+                              context.read<ArchiveCubit>().deleteRecord(state.listOfData[index]);
+
+                              int currentCounter  = state.listOfData.length - 1;
+
+                              //HiveHelper.deleteRecord(state.listOfData[index]);
+                              SharedMethods.msgOperationResult(
+                                context,
+                                'This record was deleted successfully, you\'r archive has $currentCounter records.',
+                                Colors.green,
+                              );
+
+                              // Close Modal
+                              //Navigator.of(context).pop();
+                              Navigator.pop(context);
+                            });
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              );
+            } else {
+              return Center(child: Text('Un-known State',style: kTextStyle(Colors.orangeAccent),));
+            }
+          },
+        ),
 
       // Drawer
       drawer: CustomDrawer(),
     );
   }
 
-  Future<void> openModalBottomSheet(MetalRateModel selectedRecord) async {
+  Future<void> openModalBottomSheet(MetalRateModel selectedRecord, VoidCallback onDeleteClick) async {
     return showModalBottomSheet(
       context: context,
       builder: (context) {
-
         return Container(
           padding: EdgeInsets.only(top: 16, bottom: 16, right: 26, left: 26),
           child: Column(
@@ -105,11 +107,14 @@ class _FrmMetalRateState extends State<FrmMetalArchive> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(currentMetalType(selectedRecord.metal.toLowerCase()),style: TextStyle(
-                    color: myGoldenColor,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700
-                  ),),
+                  Text(
+                    MetalSharedMethods.selectedMetalTypeByShortcut(selectedRecord.metal),
+                    style: TextStyle(
+                      color: myGoldenColor,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
 
                   currentChangePriceSection(selectedRecord.ch),
                 ],
@@ -119,8 +124,8 @@ class _FrmMetalRateState extends State<FrmMetalArchive> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Ask Price: ${selectedRecord.ask}',style: kTextStyle(),),
-                  Text('Bid Price: ${selectedRecord.bid}',style: kTextStyle(),),
+                  kText('Ask Price: ${selectedRecord.ask.toStringAsFixed(2)}'),
+                  kText('Bid Price: ${selectedRecord.bid.toStringAsFixed(2)}'),
                 ],
               ),
 
@@ -128,8 +133,8 @@ class _FrmMetalRateState extends State<FrmMetalArchive> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('10k ${selectedRecord.priceGram10K}',style: kTextStyle(),),
-                  Text('14k ${selectedRecord.priceGram14K}',style: kTextStyle(),),
+                  kText('10k ${selectedRecord.priceGram10K.toStringAsFixed(2)}'),
+                  kText('14k ${selectedRecord.priceGram14K.toStringAsFixed(2)}'),
                 ],
               ),
 
@@ -137,8 +142,8 @@ class _FrmMetalRateState extends State<FrmMetalArchive> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('16k ${selectedRecord.priceGram16K}',style: kTextStyle(),),
-                  Text('18k ${selectedRecord.priceGram18K}',style: kTextStyle(),),
+                  kText('16k ${selectedRecord.priceGram16K.toStringAsFixed(2)}'),
+                  kText('18k ${selectedRecord.priceGram18K.toStringAsFixed(2)}'),
                 ],
               ),
 
@@ -146,8 +151,8 @@ class _FrmMetalRateState extends State<FrmMetalArchive> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('20k ${selectedRecord.priceGram20K}',style: kTextStyle(),),
-                  Text('21k ${selectedRecord.priceGram21K}',style: kTextStyle(),),
+                  kText('20k ${selectedRecord.priceGram20K.toStringAsFixed(2)}'),
+                  kText('21k ${selectedRecord.priceGram21K.toStringAsFixed(2)}'),
                 ],
               ),
 
@@ -155,93 +160,67 @@ class _FrmMetalRateState extends State<FrmMetalArchive> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('22k ${selectedRecord.priceGram22K}',style: kTextStyle(),),
-                  Text('24k ${selectedRecord.priceGram24K}',style: kTextStyle(),),
+                  kText('22k ${selectedRecord.priceGram22K.toStringAsFixed(2)}'),
+                  kText('24k ${selectedRecord.priceGram24K.toStringAsFixed(2)}'),
                 ],
               ),
 
-              SizedBox(height: 15,),
+              SizedBox(height: 15),
               ElevatedButton(
-                onPressed: () {
-                  // Delete current record
-                  HiveHelper.deleteNote(selectedRecord);
-                  SharedMethods.msgOperationResult(context, 'This record was deleted successfully.', Colors.green);
-                  selectAll();
-                  setState(() {
-
-                  });
-                  // Close Modal
-                  //Navigator.of(context).pop();
-                  Navigator.pop(context);
-                },
+                onPressed: onDeleteClick,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
                   minimumSize: Size(double.infinity, 50),
                 ),
-                child: Text('Delete', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+                child: Text(
+                  'Delete',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
             ],
           ),
         );
-
       },
     );
   }
 
-  String currentMetalType(String metalShortCut) {
-    switch (metalShortCut) {
-      case 'xag':
-        return 'Silver';
-      case 'xpd':
-        return 'Palladium';
-      case 'xpt':
-        return 'Platinum';
-      default:
-        return 'Gold';
-        break;
-    }
-  }
-
-  Widget currentChangePriceSection(double ch){
+  Widget currentChangePriceSection(double ch) {
     return Row(
       children: [
-        Text(ch.toString(), style: kTextStyle(),),
+        Text(ch.toStringAsFixed(2), style: kTextStyle(Colors.white70)),
 
-        SizedBox(width: 8,),
+        SizedBox(width: 8),
 
         Icon(
           ch > 0 ? Icons.arrow_upward : Icons.arrow_downward,
           weight: 20,
           color: ch > 0 ? Colors.green : Colors.red,
-        )
+        ),
       ],
     );
   }
 
-  TextStyle kTextStyle() {
-    return TextStyle(
-      color: Colors.white70,
-      fontSize: 16,
-      fontWeight: FontWeight.w600,
+  TextStyle kTextStyle(Color color) {
+    return TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.w600);
+  }
+
+  RichText kText(String text){
+    return RichText(
+      text: TextSpan(
+        style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w600),
+        children: [
+          TextSpan(text: text),
+          TextSpan(
+            text: ' EGP',
+            style: TextStyle(color: myGoldenColor, fontSize: 12, fontWeight: FontWeight.w400),
+          ),
+        ],
+      ),
     );
   }
+
 }
-
-
-/*
-
-[
-    MetalRateModel(timestamp: 1743304714, metal: 'XAU', currency: 'EGP', openTime: 1743120000, price: 3084.84, ch: 28.22, ask: 3085.3, bid: 3084.25, priceGram24K: 99.1799, priceGram22K: 90.9149, priceGram21K: 86.7824, priceGram20K: 82.6499, priceGram18K: 74.3849, priceGram16K: 66.1199, priceGram14K: 57.8549, priceGram10K: 41.325),
-    MetalRateModel(timestamp: 1743304714, metal: 'XAU', currency: 'EGP', openTime: 1743120000, price: 3084.84, ch: -28.22, ask: 3085.3, bid: 3084.25, priceGram24K: 99.1799, priceGram22K: 90.9149, priceGram21K: 86.7824, priceGram20K: 82.6499, priceGram18K: 74.3849, priceGram16K: 66.1199, priceGram14K: 57.8549, priceGram10K: 41.325),
-    MetalRateModel(timestamp: 1743304714, metal: 'XPT', currency: 'EGP', openTime: 1743120000, price: 3084.84, ch: 28.22, ask: 3085.3, bid: 3084.25, priceGram24K: 99.1799, priceGram22K: 90.9149, priceGram21K: 86.7824, priceGram20K: 82.6499, priceGram18K: 74.3849, priceGram16K: 66.1199, priceGram14K: 57.8549, priceGram10K: 41.325),
-    MetalRateModel(timestamp: 1743304714, metal: 'XAU', currency: 'EGP', openTime: 1743120000, price: 3084.84, ch: -28.22, ask: 3085.3, bid: 3084.25, priceGram24K: 99.1799, priceGram22K: 90.9149, priceGram21K: 86.7824, priceGram20K: 82.6499, priceGram18K: 74.3849, priceGram16K: 66.1199, priceGram14K: 57.8549, priceGram10K: 41.325),
-    MetalRateModel(timestamp: 1743304714, metal: 'XAU', currency: 'EGP', openTime: 1743120000, price: 3084.84, ch: 28.22, ask: 3085.3, bid: 3084.25, priceGram24K: 99.1799, priceGram22K: 90.9149, priceGram21K: 86.7824, priceGram20K: 82.6499, priceGram18K: 74.3849, priceGram16K: 66.1199, priceGram14K: 57.8549, priceGram10K: 41.325),
-    MetalRateModel(timestamp: 1743304714, metal: 'XAG', currency: 'EGP', openTime: 1743120000, price: 3084.84, ch: 28.22, ask: 3085.3, bid: 3084.25, priceGram24K: 99.1799, priceGram22K: 90.9149, priceGram21K: 86.7824, priceGram20K: 82.6499, priceGram18K: 74.3849, priceGram16K: 66.1199, priceGram14K: 57.8549, priceGram10K: 41.325),
-    MetalRateModel(timestamp: 1743304714, metal: 'XAU', currency: 'EGP', openTime: 1743120000, price: 3084.84, ch: 28.22, ask: 3085.3, bid: 3084.25, priceGram24K: 99.1799, priceGram22K: 90.9149, priceGram21K: 86.7824, priceGram20K: 82.6499, priceGram18K: 74.3849, priceGram16K: 66.1199, priceGram14K: 57.8549, priceGram10K: 41.325),
-    MetalRateModel(timestamp: 1743304714, metal: 'XAU', currency: 'EGP', openTime: 1743120000, price: 3084.84, ch: -28.22, ask: 3085.3, bid: 3084.25, priceGram24K: 99.1799, priceGram22K: 90.9149, priceGram21K: 86.7824, priceGram20K: 82.6499, priceGram18K: 74.3849, priceGram16K: 66.1199, priceGram14K: 57.8549, priceGram10K: 41.325),
-    MetalRateModel(timestamp: 1743304714, metal: 'XAG', currency: 'EGP', openTime: 1743120000, price: 3084.84, ch: 28.22, ask: 3085.3, bid: 3084.25, priceGram24K: 99.1799, priceGram22K: 90.9149, priceGram21K: 86.7824, priceGram20K: 82.6499, priceGram18K: 74.3849, priceGram16K: 66.1199, priceGram14K: 57.8549, priceGram10K: 41.325),
-    MetalRateModel(timestamp: 1743304714, metal: 'XAU', currency: 'EGP', openTime: 1743120000, price: 3084.84, ch: 28.22, ask: 3085.3, bid: 3084.25, priceGram24K: 99.1799, priceGram22K: 90.9149, priceGram21K: 86.7824, priceGram20K: 82.6499, priceGram18K: 74.3849, priceGram16K: 66.1199, priceGram14K: 57.8549, priceGram10K: 41.325),
-    MetalRateModel(timestamp: 1743304714, metal: 'XAU', currency: 'EGP', openTime: 1743120000, price: 3084.84, ch: -28.22, ask: 3085.3, bid: 3084.25, priceGram24K: 99.1799, priceGram22K: 90.9149, priceGram21K: 86.7824, priceGram20K: 82.6499, priceGram18K: 74.3849, priceGram16K: 66.1199, priceGram14K: 57.8549, priceGram10K: 41.325),
-  ];
-
-* */

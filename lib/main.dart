@@ -1,6 +1,9 @@
+import 'package:all_in_one/controllers/cubit/archive_cubit.dart';
 import 'package:all_in_one/models/metal_rate_model.dart';
+import 'package:all_in_one/views/frm_metal_archive.dart';
 import 'package:all_in_one/views/frm_metal_rate.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'ihelper/hive_helper.dart';
 
@@ -20,13 +23,23 @@ class GoldSwing extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'All In One',
-      theme: ThemeData(
-        brightness: Brightness.dark,
-      ),
-      home: const FrmMetalRate(),
-    );
+    return
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<ArchiveCubit>(
+            create: (context) => ArchiveCubit(),
+          ),
+        ],
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'Gold Swing',
+          theme: ThemeData(
+            brightness: Brightness.dark,
+          ),
+          //home: const FrmMetalArchive(),
+          home: const FrmMetalRate(),
+        ),
+      );
+
   }
 }
