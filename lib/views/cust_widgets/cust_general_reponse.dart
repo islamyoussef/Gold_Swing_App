@@ -11,12 +11,13 @@ class CustomGeneralResponse extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.only(left:8, right: 8, bottom: 8),
+      margin: EdgeInsets.only(left:4, right: 4, bottom: 8),
       //width: MediaQuery.of(context).size.width,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text.rich(
+            softWrap: true,
             TextSpan(
                 text: title,
                 style: customTitleStyle(),
@@ -35,7 +36,7 @@ class CustomGeneralResponse extends StatelessWidget {
   TextStyle customTitleStyle(){
     return TextStyle(
       color: Colors.black87,
-      fontSize: 14,
+      fontSize: 12,
       fontWeight: FontWeight.w700,
     );
   }
@@ -43,7 +44,7 @@ class CustomGeneralResponse extends StatelessWidget {
   TextStyle customValueStyle(){
     return TextStyle(
       color: compare ? (value > 0 ? Colors.green : Colors.red) : myGoldenColor,
-      fontSize: 14,
+      fontSize: 12,
       fontWeight: FontWeight.w700,
     );
   }

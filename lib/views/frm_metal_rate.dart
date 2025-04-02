@@ -224,7 +224,7 @@ class _FrmMetalRateState extends State<FrmMetalRate> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       CustomGeneralResponse(
-                        title: 'Ounce Price: ',
+                        title: 'Ounce: ',
                         value: metalRateModel.price,
                       ),
 
@@ -243,12 +243,12 @@ class _FrmMetalRateState extends State<FrmMetalRate> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       CustomGeneralResponse(
-                        title: 'Ask Price: ',
+                        title: 'Ask: ',
                         value: metalRateModel.ask,
                       ),
 
                       CustomGeneralResponse(
-                        title: 'Bid Price: ',
+                        title: 'Bid: ',
                         value: metalRateModel.bid,
                       ),
                     ],

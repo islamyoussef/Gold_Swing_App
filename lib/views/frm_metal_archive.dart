@@ -121,13 +121,9 @@ class _FrmMetalRateState extends State<FrmMetalArchive> {
               ),
 
               SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  kText('Ask Price: ${selectedRecord.ask.toStringAsFixed(2)}'),
-                  kText('Bid Price: ${selectedRecord.bid.toStringAsFixed(2)}'),
-                ],
-              ),
+
+              kText('Ask: ${selectedRecord.ask.toStringAsFixed(2)}'),
+              kText('Bid: ${selectedRecord.bid.toStringAsFixed(2)}'),
 
               Divider(),
               Row(
