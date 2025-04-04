@@ -123,6 +123,7 @@ class _FrmMetalRateState extends State<FrmMetalArchive> {
               SizedBox(height: 24),
 
               kText('Ask: ${selectedRecord.ask.toStringAsFixed(2)}'),
+              SizedBox(height: 8),
               kText('Bid: ${selectedRecord.bid.toStringAsFixed(2)}'),
 
               Divider(),
